@@ -7,6 +7,18 @@ function onMouseMove(e) {
     gameState.pointer.y = e.pageY
 }
 
+function onMouseClick(e) {
+    if(gameState.isStopped)
+	{
+		const prevScore = gameState.lastGameScore + gameState.gameTime;
+		const prevBonus = gameState.lastBonusTime + gameState.bonusTime;
+		setup();
+		gameState.lastGameScore = prevScore;
+		gameState.lastBonusTime = prevBonus;
+		run();
+	}
+}
+
 function queueUpdates(numTicks) {
     for (let i = 0; i < numTicks; i++) {
         gameState.lastTick = gameState.lastTick + gameState.tickLength;
@@ -25,6 +37,9 @@ function draw(tFrame) {
     drawScore(context)
     if(gameState.bonus.visible === true)
         drawBonus(context);   
+	
+	if(gameState.isStopped)
+		drawResult(context);
 }
 
 function update(tick) {
@@ -45,22 +60,20 @@ function update(tick) {
 	checkCollisionCircleRect()
 	checkBoundsCollision()
     if(gameState.bonus.visible===true && checkBonusColission())
-        gameState.score += 15;
+        gameState.bonusesCatched += 1;
     
 	//Our score eq number of seconds from beginning
-    if(Math.trunc(gameState.lastTick / 1000) > gameState.gameTime)
-    {
-        gameState.score += 1;
+    if(Math.trunc(gameState.lastTick / 1000) - gameState.lastGameScore > gameState.gameTime)
         gameState.gameTime += 1;
-    }
+    
 
-    if(Math.trunc(gameState.lastTick / 15000) > gameState.bonusTime)
+    if(Math.trunc(gameState.lastTick / 15000) - gameState.lastBonusTime> gameState.bonusTime)
     {
         createBonus();
         gameState.bonusTime += 1;
     }
     
-    if(Math.trunc(gameState.lastTick / 30000) > gameState.speedUpTime)
+    if(Math.trunc(gameState.lastTick / 30000)  > gameState.speedUpTime)
     {
         gameState.speedUpTime += 1;
         gameState.ball.vx *= 1.1;
@@ -83,7 +96,8 @@ function deleteBonus() {
 function checkCollisionCircleRect(){	
 	if (gameState.ball.x >= (gameState.player.x - gameState.player.width/2) && gameState.ball.x <=(gameState.player.x + gameState.player.width/2) && (gameState.ball.y + gameState.ball.radius) >= (gameState.player.y - gameState.player.height/2))
 		{
-			gameState.ball.vy *= -1.00005;
+			gameState.ball.vy *= -1.005;
+			gameState.ball.vx *= 1.005;
 			gameState.player.width -= (gameState.player.width >= 100) ? 3 : 0;
 		}
 }
@@ -98,9 +112,8 @@ function checkBoundsCollision(){
     //Bottom wall
     if(gameState.ball.y + gameState.ball.radius >= canvas.height)
 	{
-		const context = canvas.getContext('2d')
-		drawResult(context)
-		stopGame(tFrame);
+		//drawResult(context)
+		stopGame(gameState.stopCycle);
 	}
 }
 
@@ -111,6 +124,7 @@ function checkBonusColission(){
     && (gameState.player.y - gameState.player.height/2) <= (gameState.bonus.y + gameState.bonus.v_height/2))
     {
         deleteBonus();
+		gameState.player.width += 10;
         return true;
     }
     //касания бонуса платформы справа
@@ -119,6 +133,7 @@ function checkBonusColission(){
     && (gameState.player.y - gameState.player.height/2) <= (gameState.bonus.y + gameState.bonus.h_height/2))
     {
         deleteBonus();
+		gameState.player.width += 10;
         return false;
     }
 
@@ -128,6 +143,7 @@ function checkBonusColission(){
     && (gameState.player.y - gameState.player.height/2) <= (gameState.bonus.y + gameState.bonus.h_height/2))
     {
         deleteBonus();
+		gameState.player.width += 10;
         return false;
     }
 
@@ -162,6 +178,7 @@ function run(tFrame) {
 }
 
 function stopGame(handle) {
+	gameState.isStopped = true;
     window.cancelAnimationFrame(handle);
 }
 
@@ -184,9 +201,10 @@ function drawBall(context) {
 }
 
 function drawScore(context) {    
+	const score = gameState.bonusesCatched * 15 + gameState.gameTime;
     context.font = "italic 30px Arial";
     context.fillStyle = "#000000"
-    context.fillText("SCORE:   " + gameState.score, 25, 25)    
+    context.fillText("SCORE:   " + score, 25, 25)    
 }
 
 function drawBonus(context) {
@@ -212,13 +230,14 @@ function drawBonus(context) {
 }
 
 function drawResult(context){
+	const score = gameState.bonusesCatched * 15 + gameState.gameTime;
 	context.font = "bold 50px Arial";
 	context.fillStyle = "#FF0000"
 	context.fillText("YOU LOSE!", canvas.width/2 - 50, canvas.height/2-50)
 	
 	context.font = "30px Arial";
 	context.fillStyle = "#000000"
-	context.fillText("Score: " + gameState.score, canvas.width/2 - 50, canvas.height/2 + 60)
+	context.fillText("Score: " + score, canvas.width/2 - 50, canvas.height/2 + 60)
 }
 	
 function setup() {
@@ -226,6 +245,7 @@ function setup() {
     canvas.height = window.innerHeight;
 
     canvas.addEventListener('mousemove', onMouseMove, false);
+	canvas.addEventListener('click', onMouseClick, false);
 
     gameState.lastTick = performance.now();
     gameState.lastRender = gameState.lastTick;
@@ -234,6 +254,11 @@ function setup() {
     gameState.bonusTime = 0;
     gameState.speedUpTime = 0;
     gameState.gameTime = 0;
+	gameState.isStopped = false;
+	gameState.lastGameScore = 0;
+	gameState.lastBonusTime = 0;
+	gameState.bonusesCatched = 0;
+	
 	
     const platform = {
         width: 400,
@@ -257,7 +282,7 @@ function setup() {
         y: 25,
         radius: 25,
         vx: 3,
-        vy: 5
+        vy: 7
     };
     
     gameState.bonus ={
@@ -266,10 +291,10 @@ function setup() {
         vx: 0,
         vy: 0,
         visible: false,
-        h_width: 30,
-        h_height: 10,
-        v_width: 10,
-        v_height: 30
+        h_width: (2*gameState.ball.radius),
+        h_height: (2*gameState.ball.radius)/3,
+        v_width: (2*gameState.ball.radius)/3,
+        v_height: (2*gameState.ball.radius)
     }
 }
 
