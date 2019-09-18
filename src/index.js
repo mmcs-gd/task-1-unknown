@@ -97,7 +97,11 @@ function checkBoundsCollision(){
 		gameState.ball.vy *= -1
     //Bottom wall
     if(gameState.ball.y + gameState.ball.radius >= canvas.height)
-        stopGame(tFrame)
+	{
+		const context = canvas.getContext('2d')
+		drawResult(context)
+		stopGame(tFrame);
+	}
 }
 
 function checkBonusColission(){
@@ -115,7 +119,6 @@ function checkBonusColission(){
     && (gameState.player.y - gameState.player.height/2) <= (gameState.bonus.y + gameState.bonus.h_height/2))
     {
         deleteBonus();
-        //return true;
         return false;
     }
 
@@ -125,7 +128,6 @@ function checkBonusColission(){
     && (gameState.player.y - gameState.player.height/2) <= (gameState.bonus.y + gameState.bonus.h_height/2))
     {
         deleteBonus();
-        //return true;
         return false;
     }
 
@@ -184,7 +186,7 @@ function drawBall(context) {
 function drawScore(context) {    
     context.font = "italic 30px Arial";
     context.fillStyle = "#000000"
-    context.fillText("SCORE:   " + gameState.score, 20, 20)    
+    context.fillText("SCORE:   " + gameState.score, 25, 25)    
 }
 
 function drawBonus(context) {
@@ -209,6 +211,16 @@ function drawBonus(context) {
     context.closePath()
 }
 
+function drawResult(context){
+	context.font = "bold 50px Arial";
+	context.fillStyle = "#FF0000"
+	context.fillText("YOU LOSE!", canvas.width/2 - 50, canvas.height/2-50)
+	
+	context.font = "30px Arial";
+	context.fillStyle = "#000000"
+	context.fillText("Score: " + gameState.score, canvas.width/2 - 50, canvas.height/2 + 60)
+}
+	
 function setup() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -222,7 +234,7 @@ function setup() {
     gameState.bonusTime = 0;
     gameState.speedUpTime = 0;
     gameState.gameTime = 0;
-
+	
     const platform = {
         width: 400,
         height: 50,
